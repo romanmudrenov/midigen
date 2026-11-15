@@ -127,11 +127,10 @@ class AstraSFXEngine {
     mod.connect(modGain); modGain.connect(car.frequency); car.connect(gain); gain.connect(this.hpFilter);
     car.start(t); mod.start(t); car.stop(t + 0.26); mod.stop(t + 0.26);
   }
-
-    laserCrystal() {
+      laserCrystal() {
     this.init();
     const t = this.ctx.currentTime;
-    const freqs =;
+    const freqs = new Array(1400, 2100, 2800);
     freqs.forEach((freq, i) => {
       const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
       osc.type = 'sine';
