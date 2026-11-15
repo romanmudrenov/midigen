@@ -128,10 +128,11 @@ class AstraSFXEngine {
     car.start(t); mod.start(t); car.stop(t + 0.26); mod.stop(t + 0.26);
   }
 
-  laserCrystal() {
+    laserCrystal() {
     this.init();
     const t = this.ctx.currentTime;
-    [1320, 1980].forEach((freq, i) => {
+    const freqs =;
+    freqs.forEach((freq, i) => {
       const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, t);
@@ -432,12 +433,23 @@ function copyExportCode() {
   const cleanClassCode = AstraSFXEngine.toString();
   const exportText = `// Модуль процедурных ASMR и психоделических SFX для игры ASTRACAT
 // Подключение: const sfx = new AstraSFXEngine(${JSON.stringify(config)});
+// Привязка к тегу <audio> фоновой музыки для сайдчейна: sfx.bindMusic(document.getElementById('bgMusic'));
 // Доступные звуки:
 // Оружие: sfx.bulletSoft(), sfx.bulletPlasma(), sfx.laserBeam(), sfx.laserCrystal(), sfx.rocketLaunch(), sfx.rocketSwarm()
 // Взрывы: sfx.expTiny(), sfx.expMedium(), sfx.expDeepBass(), sfx.expBoss()
 // АСМР/Бонусы: sfx.asmrBubble(), sfx.asmrClick(), sfx.asmrCrystal(), sfx.psyWarp(), sfx.asmrTingles(), sfx.powerUp()
 
 ${cleanClassCode}
+
+AstraSFXEngine.prototype.bindMusic = function(audioEl) {
+  if (!audioEl) return;
+  this.init();
+  const src = this.ctx.createMediaElementSource(audioEl);
+  this.musicGain = this.ctx.createGain();
+  this.musicGain.gain.value = 0.28;
+  src.connect(this.musicGain);
+  this.musicGain.connect(this.ctx.destination);
+};
 
 window.astraSFX = new AstraSFXEngine(${JSON.stringify(config)});`;
 
@@ -447,3 +459,4 @@ window.astraSFX = new AstraSFXEngine(${JSON.stringify(config)});`;
     setTimeout(() => toast.classList.remove('show'), 3000);
   });
 }
+
