@@ -18,39 +18,40 @@ class AstraSFXEngine {
   }
 
   init() {
-    if (this.ctx) {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-      return;
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioCtx();
+
+      this.hpFilter = this.ctx.createBiquadFilter();
+      this.hpFilter.type = 'highpass';
+      this.hpFilter.frequency.value = this.cfg.highpassHz;
+
+      this.lpFilter = this.ctx.createBiquadFilter();
+      this.lpFilter.type = 'lowpass';
+      this.lpFilter.frequency.value = this.cfg.lowpassHz;
+
+      this.compressor = this.ctx.createDynamicsCompressor();
+      this.compressor.threshold.value = -16;
+      this.compressor.knee.value = 14;
+      this.compressor.ratio.value = 5;
+      this.compressor.attack.value = 0.004;
+      this.compressor.release.value = 0.18;
+
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = this.cfg.volume;
+
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 1024;
+
+      this.hpFilter.connect(this.lpFilter);
+      this.lpFilter.connect(this.compressor);
+      this.compressor.connect(this.masterGain);
+      this.masterGain.connect(this.analyser);
+      this.analyser.connect(this.ctx.destination);
     }
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    this.ctx = new AudioCtx();
-
-    this.hpFilter = this.ctx.createBiquadFilter();
-    this.hpFilter.type = 'highpass';
-    this.hpFilter.frequency.value = this.cfg.highpassHz;
-
-    this.lpFilter = this.ctx.createBiquadFilter();
-    this.lpFilter.type = 'lowpass';
-    this.lpFilter.frequency.value = this.cfg.lowpassHz;
-
-    this.compressor = this.ctx.createDynamicsCompressor();
-    this.compressor.threshold.value = -16;
-    this.compressor.knee.value = 14;
-    this.compressor.ratio.value = 5;
-    this.compressor.attack.value = 0.004;
-    this.compressor.release.value = 0.18;
-
-    this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.value = this.cfg.volume;
-
-    this.analyser = this.ctx.createAnalyser();
-    this.analyser.fftSize = 1024;
-
-    this.hpFilter.connect(this.lpFilter);
-    this.lpFilter.connect(this.compressor);
-    this.compressor.connect(this.masterGain);
-    this.masterGain.connect(this.analyser);
-    this.analyser.connect(this.ctx.destination);
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
   }
 
   applyConfig() {
@@ -78,7 +79,6 @@ class AstraSFXEngine {
     return buf;
   }
 
-  // --- ОРУЖИЕ ---
   bulletSoft() {
     this.init();
     const t = this.ctx.currentTime;
@@ -127,7 +127,8 @@ class AstraSFXEngine {
     mod.connect(modGain); modGain.connect(car.frequency); car.connect(gain); gain.connect(this.hpFilter);
     car.start(t); mod.start(t); car.stop(t + 0.26); mod.stop(t + 0.26);
   }
-      laserCrystal() {
+
+  laserCrystal() {
     this.init();
     const t = this.ctx.currentTime;
     const freqs = new Array(1400, 2100, 2800);
@@ -167,7 +168,6 @@ class AstraSFXEngine {
     this.init();
     for (let i = 0; i < 3; i++) setTimeout(() => this.rocketLaunch(), i * 85);
   }
-  // --- ВЗРЫВЫ ---
   expTiny() {
     this.init();
     const t = this.ctx.currentTime;
@@ -252,7 +252,6 @@ class AstraSFXEngine {
     noise.start(t);
   }
 
-  // --- АСМР И ПСИХОДЕЛИКА ---
   asmrBubble() {
     this.init();
     const t = this.ctx.currentTime;
@@ -302,7 +301,8 @@ class AstraSFXEngine {
   psyWarp() {
     this.init();
     const t = this.ctx.currentTime;
-    [1, 1.25, 1.5, 1.875].forEach((ratio, idx) => {
+    const ratios = new Array(1, 1.25, 1.5, 1.875);
+    ratios.forEach((ratio, idx) => {
       const osc = this.ctx.createOscillator(), gain = this.ctx.createGain(), s = t + idx * 0.045;
       osc.type = 'sine';
       osc.frequency.setValueAtTime(240 * ratio, s);
@@ -334,7 +334,8 @@ class AstraSFXEngine {
   powerUp() {
     this.init();
     const t = this.ctx.currentTime;
-    [330, 440, 554.37, 659.25, 880].forEach((n, i) => {
+    const notes = new Array(330, 440, 554.37, 659.25, 880);
+    notes.forEach((n, i) => {
       const s = t + i * 0.065, osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(n, s);
@@ -346,9 +347,14 @@ class AstraSFXEngine {
     });
   }
 }
+
 const sfx = new AstraSFXEngine(config);
 
-// --- ТЕСТОВАЯ ФОНОВАЯ МУЗЫКА ---
+// Разблокировка аудио на мобильных браузерах при первом касании
+['touchstart', 'pointerdown', 'click'].forEach(evt => {
+  window.addEventListener(evt, () => sfx.init(), { once: true });
+});
+
 let bgMusicNodes = null;
 function toggleBgMusic() {
   sfx.init();
@@ -367,7 +373,8 @@ function toggleBgMusic() {
   mGain.connect(sfx.ctx.destination);
   sfx.musicGain = mGain;
 
-  bgMusicNodes = [65.41, 130.81, 196.00, 246.94].map((f, idx) => {
+  const baseFreqs = new Array(65.41, 130.81, 196.00, 246.94);
+  bgMusicNodes = baseFreqs.map((f, idx) => {
     const osc = sfx.ctx.createOscillator();
     const filter = sfx.ctx.createBiquadFilter();
     osc.type = idx === 0 ? 'sawtooth' : 'sine';
@@ -383,7 +390,6 @@ function toggleBgMusic() {
   btn.textContent = '🎵 Тест-музыка (Бас + Пэд): ВКЛ';
 }
 
-// --- ПОЛЗУНКИ И ОСЦИЛЛОГРАФ ---
 function updateConfig() {
   config.volume = document.getElementById('rngVol').value / 100;
   config.highpassHz = Number(document.getElementById('rngHp').value);
@@ -427,35 +433,52 @@ function drawScope() {
 }
 drawScope();
 
-// --- ЭКСПОРТ ЧИСТОГО МОДУЛЯ ДЛЯ ДРУГОЙ ИИ ---
 function copyExportCode() {
-  const cleanClassCode = AstraSFXEngine.toString();
-  const exportText = `// Модуль процедурных ASMR и психоделических SFX для игры ASTRACAT
-// Подключение: const sfx = new AstraSFXEngine(${JSON.stringify(config)});
-// Привязка к тегу <audio> фоновой музыки для сайдчейна: sfx.bindMusic(document.getElementById('bgMusic'));
-// Доступные звуки:
-// Оружие: sfx.bulletSoft(), sfx.bulletPlasma(), sfx.laserBeam(), sfx.laserCrystal(), sfx.rocketLaunch(), sfx.rocketSwarm()
-// Взрывы: sfx.expTiny(), sfx.expMedium(), sfx.expDeepBass(), sfx.expBoss()
-// АСМР/Бонусы: sfx.asmrBubble(), sfx.asmrClick(), sfx.asmrCrystal(), sfx.psyWarp(), sfx.asmrTingles(), sfx.powerUp()
+  const cfgStr = JSON.stringify(config);
+  const lines = [
+    "// Модуль процедурных ASMR и психоделических SFX для игры ASTRACAT",
+    "// Подключение: const sfx = new AstraSFXEngine(" + cfgStr + ");",
+    "// Привязка к тегу audio фоновой музыки: sfx.bindMusic(document.getElementById('bgMusic'));",
+    "// Оружие: sfx.bulletSoft(), sfx.bulletPlasma(), sfx.laserBeam(), sfx.laserCrystal(), sfx.rocketLaunch(), sfx.rocketSwarm()",
+    "// Взрывы: sfx.expTiny(), sfx.expMedium(), sfx.expDeepBass(), sfx.expBoss()",
+    "// АСМР: sfx.asmrBubble(), sfx.asmrClick(), sfx.asmrCrystal(), sfx.psyWarp(), sfx.asmrTingles(), sfx.powerUp()",
+    "",
+    AstraSFXEngine.toString(),
+    "",
+    "AstraSFXEngine.prototype.bindMusic = function(audioEl) {",
+    "  if (!audioEl) return;",
+    "  this.init();",
+    "  const src = this.ctx.createMediaElementSource(audioEl);",
+    "  this.musicGain = this.ctx.createGain();",
+    "  this.musicGain.gain.value = 0.28;",
+    "  src.connect(this.musicGain);",
+    "  this.musicGain.connect(this.ctx.destination);",
+    "};",
+    "",
+    "window.astraSFX = new AstraSFXEngine(" + cfgStr + ");"
+  ];
 
-${cleanClassCode}
+  const exportText = lines.join("\n");
 
-AstraSFXEngine.prototype.bindMusic = function(audioEl) {
-  if (!audioEl) return;
-  this.init();
-  const src = this.ctx.createMediaElementSource(audioEl);
-  this.musicGain = this.ctx.createGain();
-  this.musicGain.gain.value = 0.28;
-  src.connect(this.musicGain);
-  this.musicGain.connect(this.ctx.destination);
-};
-
-window.astraSFX = new AstraSFXEngine(${JSON.stringify(config)});`;
-
-  navigator.clipboard.writeText(exportText).then(() => {
-    const toast = document.getElementById('toast');
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
-  });
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(exportText).then(showToast).catch(() => fallbackCopy(exportText));
+  } else {
+    fallbackCopy(exportText);
+  }
 }
 
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showToast();
+}
+
+function showToast() {
+  const toast = document.getElementById("toast");
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3000);
+}
