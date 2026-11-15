@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASTRACAT • ASMR & Psychedelic SFX Studio</title>
+  <style>
+    :root {
+      --bg: #0b0e17;
+      --panel: #131829;
+      --card: #1a2138;
+      --border: #2c3759;
+      --accent: #7c5cff;
+      --accent-hover: #947aff;
+      --cyan: #00e5ff;
+      --text: #e6ebff;
+      --muted: #8b98c7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      line-height: 1.4;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    h1 { font-size: 22px; display: flex; align-items: center; gap: 10px; }
+    .badge {
+      background: rgba(124, 92, 255, 0.2);
+      border: 1px solid var(--accent);
+      color: var(--cyan);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+    }
+    .top-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .btn {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: 0.15s;
+    }
+    .btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-music.active {
+      background: rgba(0, 229, 255, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .visualizer {
+      width: 100%;
+      height: 70px;
+      background: #080a12;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      display: block;
+    }
+    .tuner {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .section-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .sliders {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .slider-group {
+      background: var(--card);
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .slider-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; }
+    .slider-val { color: var(--cyan); font-family: monospace; font-weight: bold; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 20px;
+    }
+    .section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .pad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pad {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 12px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: 0.12s;
+    }
+    .pad:hover { border-color: var(--cyan); background: #202945; }
+    .pad:active { transform: scale(0.97); }
+    .pad-title { font-weight: 700; font-size: 13px; display: block; margin-bottom: 3px; }
+    .pad-desc { font-size: 11px; color: var(--muted); display: block; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #10b981;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: 0.25s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <h1>🎛 ASTRACAT SFX Studio <span class="badge">Web Audio API</span></h1>
+      <p style="font-size: 13px; color: var(--muted); margin-top: 4px;">
+        Песочница процедурного АСМР и психоделического звука (без конфликта с музыкой)
+      </p>
+    </div>
+    <div class="top-controls">
+      <button id="btnMusic" class="btn btn-music" onclick="toggleBgMusic()">
+        🎵 Тест-музыка (Бас + Пэд): ВЫКЛ
+      </button>
+      <button class="btn btn-primary" onclick="copyExportCode()">
+        📋 Скопировать JS-модуль для другой ИИ
+      </button>
+    </div>
+  </header>
+
+  <canvas id="scope" class="visualizer"></canvas>
+
+  <div class="tuner">
+    <div class="section-title">
+      <span>🎚 Мастер-настройки микса (Защита фоновой музыки)</span>
+      <span style="font-size: 11px; color: var(--cyan);">Сайдчейн + Обрезка низов</span>
+    </div>
+    <div class="sliders">
+      <div class="slider-group">
+        <div class="slider-header"><span>Громкость SFX</span><span class="slider-val" id="valVol">45%</span></div>
+        <input type="range" id="rngVol" min="0" max="100" value="45" oninput="updateConfig()">
+      </div>
+      <div class="slider-group">
+        <div class="slider-header"><span>Срез низов (High-Pass)</span><span class="slider-val" id="valHp">160 Гц</span></div>
+        <input type="range" id="rngHp" min="40" max="400" value="160" oninput="updateConfig()">
+      </div>
+      <div class="slider-group">
+        <div class="slider-header"><span>Мягкость / Бархат (Low-Pass)</span><span class="slider-val" id="valLp">3200 Гц</span></div>
+        <input type="range" id="rngLp" min="800" max="8000" value="3200" oninput="updateConfig()">
+      </div>
+      <div class="slider-group">
+        <div class="slider-header"><span>Сайдчейн при взрывах</span><span class="slider-val" id="valDuck">40%</span></div>
+        <input type="range" id="rngDuck" min="0" max="80" value="40" oninput="updateConfig()">
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="section">
+      <div class="section-title">🚀 Оружие (Выстрелы)</div>
+      <div class="pad-grid">
+        <button class="pad" onclick="sfx.bulletSoft()">
+          <span class="pad-title">🫧 Бархатная пуля</span>
+          <span class="pad-desc">Мягкий импульс без режущих высоких</span>
+        </button>
+        <button class="pad" onclick="sfx.bulletPlasma()">
+          <span class="pad-title">🔮 Плазма-капля</span>
+          <span class="pad-desc">Психоделический питч-свип</span>
+        </button>
+        <button class="pad" onclick="sfx.laserBeam()">
+          <span class="pad-title">⚡ Фрактальный лазер</span>
+          <span class="pad-desc">FM-модуляция с резонансом</span>
+        </button>
+        <button class="pad" onclick="sfx.laserCrystal()">
+          <span class="pad-title">💎 Кристальный луч</span>
+          <span class="pad-desc">Высокий гармонический перелив</span>
+        </button>
+        <button class="pad" onclick="sfx.rocketLaunch()">
+          <span class="pad-title">🚀 Запуск ракеты</span>
+          <span class="pad-desc">Фильтрованный реактивный хвост</span>
+        </button>
+        <button class="pad" onclick="sfx.rocketSwarm()">
+          <span class="pad-title">☄️ Микро-ракеты</span>
+          <span class="pad-desc">Серия быстрых воздушных хлопков</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">💥 Взрывы врагов</div>
+      <div class="pad-grid">
+        <button class="pad" onclick="sfx.expTiny()">
+          <span class="pad-title">💨 Хлопок дрона</span>
+          <span class="pad-desc">Короткий, не забивает микс</span>
+        </button>
+        <button class="pad" onclick="sfx.expMedium()">
+          <span class="pad-title">💥 Взрыв крейсера</span>
+          <span class="pad-desc">Теплый удар + затухающий шум</span>
+        </button>
+        <button class="pad" onclick="sfx.expDeepBass()">
+          <span class="pad-title">🌋 Глубокий имплозив</span>
+          <span class="pad-desc">Вакуумный провал + сайдчейн</span>
+        </button>
+        <button class="pad" onclick="sfx.expBoss()">
+          <span class="pad-title">👑 Взрыв Босса</span>
+          <span class="pad-desc">Многослойный распад с резонансом</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">✨ АСМР & Психоделика</div>
+      <div class="pad-grid">
+        <button class="pad" onclick="sfx.asmrBubble()">
+          <span class="pad-title">🫧 Водное бульканье</span>
+          <span class="pad-desc">Приятные пузырьки (монеты / лут)</span>
+        </button>
+        <button class="pad" onclick="sfx.asmrClick()">
+          <span class="pad-title">🥢 Деревянный щелчок</span>
+          <span class="pad-desc">Тактильный АСМР клик (UI / щит)</span>
+        </button>
+        <button class="pad" onclick="sfx.asmrCrystal()">
+          <span class="pad-title">🎐 Стеклянная капля</span>
+          <span class="pad-desc">Чистый синус с легким эхом</span>
+        </button>
+        <button class="pad" onclick="sfx.psyWarp()">
+          <span class="pad-title">🌀 Гипно-перелив</span>
+          <span class="pad-desc">Плавающий аккорд для порталов</span>
+        </button>
+        <button class="pad" onclick="sfx.asmrTingles()">
+          <span class="pad-title">✨ Мурашки (Grains)</span>
+          <span class="pad-desc">Микро-гранулы случайных частот</span>
+        </button>
+        <button class="pad" onclick="sfx.powerUp()">
